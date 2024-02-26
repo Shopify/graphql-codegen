@@ -53,10 +53,10 @@ Therefore, when passing the query to the GraphQL client, TypeScript will infer t
 - It does not require wrapping your queries or transforming them to AST with `graphql-tag`. As long as the GraphQL client complies with the TypeScript interfaces, you can simply pass plain strings.
 - It does not add any runtime overhead or size to the production bundle. The generated `d.ts` file is used only for type checking, and optionally for importing types in your code.
 - Generated types can be imported in your components to declare the shape of the data you expect to receive. For example:
-  
+
   ```tsx
   import type {LayoutQuery} from './my-api.generated';
-  
+
   export function Layout({shop}: LayoutQuery) {
     return (
       <div>
@@ -82,7 +82,7 @@ Therefore, when passing the query to the GraphQL client, TypeScript will infer t
 
   const query = `#graphql
     ${fragment}
-
+  
     query layout {
       shop {
         ...MyFragment
@@ -126,16 +126,13 @@ export default {
 
         // Add a custom interface extension to connect
         // the generated types to the GraphQL client:
-        interfaceExtension: ({
-          queryType,
-          mutationType,
-        }) => `
+        interfaceExtension: ({queryType, mutationType}) => `
           declare module 'my-api-client' {
             interface MyAPIQueries extends ${queryType} {}
             interface MyAPIMutations extends ${mutationType} {}
           }
         `,
-      }
+      },
     },
   },
 } as CodegenConfig;
@@ -181,10 +178,10 @@ This allows to use the `clientQuery` function with any query string and TypeScri
 
 ```ts
 // Inferred type from the query:
-data = await clientQuery('query layout {shop {name}}')
+data = await clientQuery('query layout {shop {name}}');
 
 // Overwritten return type:
-data = await clientQuery<{shop: {name: string}}>('...')
+data = await clientQuery<{shop: {name: string}}>('...');
 ```
 
 The type utilities accept other optional type params:
@@ -202,5 +199,5 @@ ClientVariablesInRestParams<
   // Query variables that the client automatically injects.
   // E.g. `'locale' | 'currency'`
   AutoInjectedVariables
->
+>;
 ```
