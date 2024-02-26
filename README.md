@@ -200,3 +200,57 @@ ClientVariablesInRestParams<
   AutoInjectedVariables
 >;
 ```
+
+### Wrapping this preset
+
+This preset can be wrapped in a custom preset that generates types for a specific API and adds default values. For example, to generate types for an `example-api` package:
+
+```ts
+// example-api/preset.ts
+
+import {preset as internalPreset} from '@shopify/graphql-codegen';
+export {pluckConfig} from '@shopify/graphql-codegen';
+
+// Export a custom preset that adds default values for schema and types:
+export const preset = {
+  buildGeneratesSection: (options) => {
+    return internalPreset.buildGeneratesSection({
+      ...options,
+      // Known schema path from the example-api package:
+      schema: 'example-api/schema.json'
+      presetConfig: {
+        importTypes: {
+          namespace: 'ExampleAPI',
+          // Known types path from the example-api package:
+          from: 'example-api/types',
+        },
+        interfaceExtension: ({queryType, mutationType}) => `
+          declare module 'example-api/client' {
+            interface AdminQueries extends ${queryType} {}
+            interface AdminMutations extends ${mutationType} {}
+          }`,
+      },
+    });
+  },
+};
+```
+
+When the user imports this new preset, they don't need to specify the schema and types paths:
+
+```ts
+// <root>/codegen.ts
+
+// This uses @shopify/graphql-codegen internally:
+import {preset, pluckConfig} from 'example-api/preset';
+
+export default {
+  overwrite: true,
+  pluckConfig,
+  generates: {
+    'example-api.generated.d.ts': {
+      preset,
+      documents: ['**/*.ts'],
+    },
+  },
+};
+```
