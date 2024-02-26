@@ -15,8 +15,8 @@
     "build": "tsup --clean",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "test": "cross-env SHOPIFY_UNIT_TEST=1 vitest run --typecheck",
-    "test:watch": "cross-env SHOPIFY_UNIT_TEST=1 vitest --typecheck"
+    "test": "vitest run --typecheck",
+    "test:watch": "vitest --typecheck"
   },
   "exports": {
     ".": {
@@ -35,8 +35,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/shopify/hydrogen.git",
-    "directory": "packages/hydrogen-codegen"
+    "url": "https://github.com/shopify/graphql-codegen.git"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "files": [
     "dist"
@@ -45,6 +47,8 @@
     "@graphql-codegen/cli": "^5.0.1",
     "@graphql-codegen/plugin-helpers": "^5.0.2",
     "@graphql-tools/utils": "^10.0.13",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3",
     "vitest": "^1.0.4"
   },
   "dependencies": {

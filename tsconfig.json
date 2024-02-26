@@ -1,10 +1,22 @@
 {
-  "extends": "../../tsconfig.json",
-  "include": ["src", "tests"],
-  "exclude": ["dist", "node_modules", ".turbo"],
+  "include": ["src", "tests", "*.ts"],
+  "exclude": ["dist", "node_modules", ".turbo", ".cache"],
   "compilerOptions": {
-    "moduleResolution": "node",
     "rootDir": ".",
-    "outDir": "dist"
+    "outDir": "dist",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "declaration": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true
   }
 }
