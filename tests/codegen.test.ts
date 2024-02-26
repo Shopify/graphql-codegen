@@ -1,17 +1,36 @@
-import {describe, it, expect} from 'vitest';
 import path from 'node:path';
+import {describe, it, expect} from 'vitest';
 import {executeCodegen} from '@graphql-codegen/cli';
-import {preset, schema, pluckConfig} from '../src/index.js';
-import {getDefaultOptions} from '../src/defaults.js';
+import {preset, pluckConfig} from '../src/index.js';
+import {
+  GENERATED_MUTATION_INTERFACE_NAME,
+  GENERATED_QUERY_INTERFACE_NAME,
+} from '../src/plugin.js';
 
-describe('Hydrogen Codegen', async () => {
+const sfapiDefaultInterfaceExtensionCode = `
+declare module '@shopify/hydrogen' {
+  interface StorefrontQueries extends ${GENERATED_QUERY_INTERFACE_NAME} {}
+  interface StorefrontMutations extends ${GENERATED_MUTATION_INTERFACE_NAME} {}
+}`;
+
+describe('Shopify GraphQL Codegen', async () => {
+  const getFixturePath = (fixture: string) =>
+    path.join(__dirname, 'fixtures', fixture);
+
   const getCodegenOptions = (fixture: string, output = 'out.d.ts') => ({
     pluckConfig: pluckConfig as any,
     generates: {
       [output]: {
         preset,
-        schema,
-        documents: path.join(__dirname, `fixtures/${fixture}`),
+        schema: getFixturePath('storefront.schema.json'),
+        documents: [getFixturePath(fixture)],
+        presetConfig: {
+          interfaceExtension: () => sfapiDefaultInterfaceExtensionCode,
+          importTypes: {
+            namespace: 'StorefrontAPI',
+            from: './fixtures/storefront-api-types',
+          },
+        },
       },
     },
   });
@@ -20,7 +39,7 @@ describe('Hydrogen Codegen', async () => {
     await expect(
       executeCodegen(getCodegenOptions('simple-operations.ts', 'out')),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[AggregateError: [hydrogen-preset] target output should be a .d.ts file]`,
+      `[AggregateError: [@shopify/graphql-codegen] target output should be a .d.ts file]`,
     );
   });
 
@@ -46,7 +65,7 @@ describe('Hydrogen Codegen', async () => {
 
     // Imports SFAPI
     expect(generatedCode).toMatch(
-      `import * as StorefrontAPI from '@shopify/hydrogen/storefront-api-types';`,
+      `import * as StorefrontAPI from './fixtures/storefront-api-types';`,
     );
 
     // Uses Pick<...>
@@ -61,13 +80,13 @@ describe('Hydrogen Codegen', async () => {
     );
 
     // Augments query/mutation types
-    expect(generatedCode).toMatch(getDefaultOptions().interfaceExtensionCode);
+    expect(generatedCode).toMatch(sfapiDefaultInterfaceExtensionCode);
 
     expect(generatedCode).toMatchInlineSnapshot(`
       "/* eslint-disable eslint-comments/disable-enable-pair */
       /* eslint-disable eslint-comments/no-unlimited-disable */
       /* eslint-disable */
-      import * as StorefrontAPI from '@shopify/hydrogen/storefront-api-types';
+      import * as StorefrontAPI from './fixtures/storefront-api-types';
 
       export type LayoutQueryVariables = StorefrontAPI.Exact<{ [key: string]: never; }>;
 
@@ -112,7 +131,7 @@ describe('Hydrogen Codegen', async () => {
       "/* eslint-disable eslint-comments/disable-enable-pair */
       /* eslint-disable eslint-comments/no-unlimited-disable */
       /* eslint-disable */
-      import * as StorefrontAPI from '@shopify/hydrogen/storefront-api-types';
+      import * as StorefrontAPI from './fixtures/storefront-api-types';
 
       type Media_ExternalVideo_Fragment = (
         { __typename: 'ExternalVideo' }

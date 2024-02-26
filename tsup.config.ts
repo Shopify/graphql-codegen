@@ -15,16 +15,11 @@ export default defineConfig([
     ...commonConfig,
     format: 'esm',
     // Force bundling types in files here so that they can later be
-    // bundled in Hydrogen. Otherwise, TSUP fails to bundle them later.
+    // bundled in GraphQL client packages to avoid having codegen as
+    // a direct dependency. Otherwise, TSUP fails to bundle them later.
     dts: {entry: ['src/index.ts', 'src/patch.ts']},
     entry: ['src/**/*.ts'],
     outDir: 'dist/esm',
-    async onSuccess() {
-      const schemaFile = 'dist/esm/schema.js';
-      const content = await fs.readFile(schemaFile, 'utf8');
-      // Uncomment createRequire for ESM:
-      await fs.writeFile(schemaFile, content.replace(/\/\/!/g, ''));
-    },
   },
   {
     ...commonConfig,

@@ -3,29 +3,28 @@ import * as addPlugin from '@graphql-codegen/add';
 import * as typescriptPlugin from '@graphql-codegen/typescript';
 import * as typescriptOperationPlugin from '@graphql-codegen/typescript-operations';
 import {processSources} from './sources.js';
-import {getDefaultOptions} from './defaults.js';
 import {
   plugin as dtsPlugin,
   GENERATED_MUTATION_INTERFACE_NAME,
   GENERATED_QUERY_INTERFACE_NAME,
 } from './plugin.js';
 
-export type HydrogenPresetConfig = {
+export type PresetConfig = {
   /**
-   * Name for the variable that contains the imported types.
-   * @default 'StorefrontAPI'
+   * Whether types should be imported or generated inline.
    */
-  namespacedImportName?: string;
-  /**
-   * Module to import the types from.
-   * @default '@shopify/hydrogen/storefront-api-types'
-   */
-  importTypesFrom?: string;
-  /**
-   * Whether types should be imported from the `importTypesFrom` module, or generated inline.
-   * @default true
-   */
-  importTypes?: boolean;
+  importTypes?: {
+    /**
+     * Name for the variable that contains the imported types.
+     * @example 'StorefrontAPI'
+     */
+    namespace: string;
+    /**
+     * Module to import the types from.
+     * @example '@shopify/hydrogen/storefront-api-types'
+     */
+    from: string;
+  };
   /**
    * Whether to skip adding `__typename` to generated operation types.
    * @default true
@@ -33,18 +32,21 @@ export type HydrogenPresetConfig = {
   skipTypenameInOperations?: boolean;
   /**
    * Override the default interface extension.
+   * @example ({queryType}) => `declare module 'my-api' { interface Queries extends ${queryType} {} }`
    */
-  interfaceExtension?: (options: {
+  interfaceExtension: (options: {
     queryType: string;
     mutationType: string;
   }) => string;
 };
 
-export const preset: Types.OutputPreset<HydrogenPresetConfig> = {
-  [Symbol.for('name')]: 'hydrogen',
+const ERROR_PREFIX = '[@shopify/graphql-codegen]';
+
+export const preset: Types.OutputPreset<PresetConfig> = {
+  [Symbol.for('name')]: '@shopify/graphql-codegen',
   buildGeneratesSection: (options) => {
     if (!options.baseOutputDir.endsWith('.d.ts')) {
-      throw new Error('[hydrogen-preset] target output should be a .d.ts file');
+      throw new Error(ERROR_PREFIX + ' target output should be a .d.ts file');
     }
 
     if (
@@ -52,27 +54,22 @@ export const preset: Types.OutputPreset<HydrogenPresetConfig> = {
       Object.keys(options.plugins).some((p) => p.startsWith('typescript'))
     ) {
       throw new Error(
-        '[hydrogen-preset] providing additional typescript-based `plugins` leads to duplicated generated types',
+        ERROR_PREFIX +
+          ' providing additional typescript-based `plugins` leads to duplicated generated types',
       );
     }
 
     const sourcesWithOperations = processSources(options.documents);
     const sources = sourcesWithOperations.map(({source}) => source);
 
-    const defaultOptions = getDefaultOptions(options.baseOutputDir);
+    const namespacedImportName = options.presetConfig.importTypes?.namespace;
+    const importTypesFrom = options.presetConfig.importTypes?.from;
+    const importTypes = !!namespacedImportName && !!importTypesFrom;
 
-    const importTypes = options.presetConfig.importTypes ?? true;
-    const namespacedImportName =
-      options.presetConfig.namespacedImportName ??
-      defaultOptions.namespacedImportName;
-    const importTypesFrom =
-      options.presetConfig.importTypesFrom ?? defaultOptions.importTypesFrom;
-
-    const interfaceExtensionCode =
-      options.presetConfig.interfaceExtension?.({
-        queryType: GENERATED_QUERY_INTERFACE_NAME,
-        mutationType: GENERATED_MUTATION_INTERFACE_NAME,
-      }) ?? defaultOptions.interfaceExtensionCode;
+    const interfaceExtensionCode = options.presetConfig.interfaceExtension({
+      queryType: GENERATED_QUERY_INTERFACE_NAME,
+      mutationType: GENERATED_MUTATION_INTERFACE_NAME,
+    });
 
     const pluginMap = {
       ...options.pluginMap,
@@ -89,7 +86,7 @@ export const preset: Types.OutputPreset<HydrogenPresetConfig> = {
           content: `/* eslint-disable eslint-comments/disable-enable-pair */\n/* eslint-disable eslint-comments/no-unlimited-disable */\n/* eslint-disable */`,
         },
       },
-      // 2. Import all the generated API types from Hydrogen or generate all the types from the schema.
+      // 2. Import all the generated API types or generate all the types from the schema.
       importTypes
         ? {
             [`add`]: {
@@ -113,7 +110,7 @@ export const preset: Types.OutputPreset<HydrogenPresetConfig> = {
           namespacedImportName: importTypes ? namespacedImportName : undefined,
         },
       },
-      // 4.  Augment Hydrogen query/mutation interfaces with the generated operations
+      // 4.  Augment query/mutation interfaces with the generated operations
       {[`gen-dts`]: {sourcesWithOperations, interfaceExtensionCode}},
       // 5. Custom plugins from the user
       ...options.plugins,

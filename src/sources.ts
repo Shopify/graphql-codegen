@@ -1,6 +1,6 @@
-import type {OperationOrFragment, SourceWithOperations} from './plugin.js';
 import type {Source} from '@graphql-tools/utils';
 import type {FragmentDefinitionNode, OperationDefinitionNode} from 'graphql';
+import type {OperationOrFragment, SourceWithOperations} from './plugin.js';
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 

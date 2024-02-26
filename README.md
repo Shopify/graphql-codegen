@@ -112,14 +112,13 @@ export default {
       schema: './path/to/my-api-schema.json',
       documents: ['./src/graphql/my-api/*.{ts,tsx,js,jsx}'],
       presetConfig: {
-        // The following two options generate the line
-        // `import * as MyAPI from 'path/to/my-api-types';`
-        namespacedImportName: 'MyAPI',
-        importTypesFrom: 'path/to/my-api-types',
-
+        // Generate the line `import * as MyAPI from 'path/to/my-api-types';`.
         // If you don't have generated types for your API beforehand,
-        // you can use the following option to generate them inline:
-        importTypes: false, // Defaults to `true`.
+        // omit this parameter to generate the types inline.
+        importTypes: {
+          namespace: 'MyAPI',
+          from: 'path/to/my-api-types',
+        },
 
         // Skip the __typename property from generated types:
         skipTypenameInOperations: true,

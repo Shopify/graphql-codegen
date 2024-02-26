@@ -51,7 +51,7 @@ const normalizeOperation = (
         variableNotFound = true; // break;
         console.error(
           new Error(
-            `Variable "${variableName}" not found. This might be a bug in hydrogen-codegen, please report it.`,
+            `Variable "${variableName}" not found. This might be a bug in @shopify/graphql-codegen, please report it.`,
           ),
         );
       }
@@ -67,9 +67,6 @@ const buildTypeLines = (name: string, operations: Map<string, string[]>) => {
   for (const [originalString, typeNames] of operations) {
     lines.push(
       `  ${JSON.stringify(originalString)}: {return: ${
-        // SFAPI does not support multiple operations in a single document.
-        // Use 'never' here if that's the case so that the user gets a type error.
-        // e.g. `'query q1 {...} query q2 {...}'` is invalid.
         typeNames.length === 1 ? typeNames[0] : 'never'
       }, variables: ${typeNames.map((n) => n + 'Variables').join(' & ')}},\n`,
     );
