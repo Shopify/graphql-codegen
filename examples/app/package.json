@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"*.d.ts\" --ignore-unknown",
+    "codegen": "graphql-codegen && npm run format"
+  }
+}

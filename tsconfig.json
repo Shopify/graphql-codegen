@@ -1,8 +1,9 @@
 {
-  "include": ["src", "tests", "*.ts"],
+  "include": ["**/*.ts", "**/.*.ts"],
   "exclude": ["dist", "node_modules", ".turbo", ".cache"],
   "compilerOptions": {
     "rootDir": ".",
+    "baseUrl": ".",
     "outDir": "dist",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "target": "ESNext",
@@ -17,6 +18,9 @@
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "skipDefaultLibCheck": true
+    "skipDefaultLibCheck": true,
+    "paths": {
+      "@shopify/graphql-codegen": ["src/index.ts"]
+    }
   }
 }

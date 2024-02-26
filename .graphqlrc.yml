@@ -1,0 +1,5 @@
+projects:
+  default:
+    schema: './tests/fixtures/storefront.schema.json'
+    documents:
+      - './examples/app/*.ts'
