@@ -14,22 +14,22 @@ By participating, you are expected to uphold this code.
 
 Run the following commands to get started.
 
-| Command                                                | Description                                   |
-| ------------------------------------------------------ | --------------------------------------------- |
-| `git clone git@github.com:Shopify/graphql-codegen.git` | Clones the repo to your local computer        |
-| `npm install`                                          | Installs the dependencies with `npm`          |
-| `npm run build`                                        | builds the source code in `dist`              |
-| `npm run dev`                                          | Builds and watches for changes                |
+| Command                                                | Description                            |
+| ------------------------------------------------------ | -------------------------------------- |
+| `git clone git@github.com:Shopify/graphql-codegen.git` | Clones the repo to your local computer |
+| `npm install`                                          | Installs the dependencies with `npm`   |
+| `npm run build`                                        | builds the source code in `dist`       |
+| `npm run dev`                                          | Builds and watches for changes         |
 
 ## Testing
 
 Hydrogen tests are run using [vitest](https://vitest.dev). You can run the tests with the following commands.
 
-| Command                  | Description                         |
-| ------------------------ | ----------------------------------- |
-| `npm run test`           | Runs unit and type tests once       |
-| `npm run test:watch`     | Runs tests on every file change     |
-| `npm run test:coverage`  | Runs tests and outputs coverage     |
+| Command                 | Description                     |
+| ----------------------- | ------------------------------- |
+| `npm run test`          | Runs unit and type tests once   |
+| `npm run test:watch`    | Runs tests on every file change |
+| `npm run test:coverage` | Runs tests and outputs coverage |
 
 ## Before submitting a PR
 
