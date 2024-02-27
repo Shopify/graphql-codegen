@@ -19,6 +19,7 @@
     "test:watch": "vitest --typecheck",
     "test:coverage": "vitest run --typecheck --coverage",
     "format": "prettier --write .",
+    "format:check": "prettier --check --ignore-unknown .",
     "codegen": "cd examples/app && npm run codegen"
   },
   "exports": {
