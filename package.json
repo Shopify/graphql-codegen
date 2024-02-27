@@ -4,7 +4,7 @@
     "access": "public",
     "@shopify:registry": "https://registry.npmjs.org"
   },
-  "version": "0.0.1",
+  "version": "0.0.0",
   "license": "MIT",
   "type": "module",
   "main": "dist/cjs/index.cjs",
@@ -20,7 +20,8 @@
     "test:coverage": "vitest run --typecheck --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check --ignore-unknown .",
-    "codegen": "cd examples/app && npm run codegen"
+    "codegen": "cd examples/app && npm run codegen",
+    "changeset": "changeset"
   },
   "exports": {
     ".": {
@@ -49,6 +50,8 @@
     "dist"
   ],
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.0",
+    "@changesets/cli": "^2.27.1",
     "@graphql-codegen/cli": "^5.0.1",
     "@graphql-codegen/plugin-helpers": "^5.0.2",
     "@graphql-tools/utils": "^10.0.13",
