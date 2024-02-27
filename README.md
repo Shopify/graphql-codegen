@@ -4,9 +4,7 @@ A codegen plugin and preset for generating TypeScript types from GraphQL queries
 
 > This package was originally extracted from `@shopify/hydrogen-codegen` to be agnostic of Hydrogen and to be used with any GraphQL client.
 
-The GraphQL client must use TypeScript interfaces that are extended in the generated `d.ts` file. This package also exports utility types to create GraphQL clients that comply to these interfaces. See an example in [Hydrogen's Storefront client](https://github.com/Shopify/hydrogen/blob/081b41e0d43c9e1090933e908362625b9dfe7166/packages/hydrogen/src/storefront.ts#L58-L143).
-
-For example, the following query:
+The GraphQL client must use TypeScript interfaces that are extended in the generated `d.ts` file. This package also exports utility types to create GraphQL clients that comply to these interfaces.
 
 ```ts
 // `shop` is inferred as {name: string, description: string}
@@ -19,34 +17,6 @@ const {shop} = await clientQuery(`#graphql
   }
 `);
 ```
-
-Would generate the following `d.ts` file:
-
-```ts
-import * as MyAPI from 'path/to/my-api-types';
-
-export type LayoutQueryVariables = MyAPI.Exact<{[key: string]: never}>;
-
-export type LayoutQuery = {
-  shop: Pick<MyAPI.Shop, 'name' | 'description'>;
-};
-
-interface GeneratedQueryTypes {
-  '#graphql\n  query layout {\n    shop {\n      name\n      description\n    }\n  }\n': {
-    return: LayoutQuery;
-    variables: LayoutQueryVariables;
-  };
-}
-
-interface GeneratedMutationTypes {}
-
-declare module 'my-api-client' {
-  interface MyAPIQueries extends GeneratedQueryTypes {}
-  interface MyAPIMutations extends GeneratedMutationTypes {}
-}
-```
-
-Therefore, when passing the query to the GraphQL client, TypeScript will infer the type of the response and the variables parameter.
 
 ## Benefits
 
@@ -137,6 +107,35 @@ export default {
 } as CodegenConfig;
 ```
 
+Then, include queries in your app that match the given schema and documents paths. For example, for a query `layout` like the one in the example above, the generated `d.ts` file will look like this:
+
+```ts
+// my-api.generated.d.ts
+import * as MyAPI from 'path/to/my-api-types';
+
+export type LayoutQueryVariables = MyAPI.Exact<{[key: string]: never}>;
+
+export type LayoutQuery = {
+  shop: Pick<MyAPI.Shop, 'name' | 'description'>;
+};
+
+interface GeneratedQueryTypes {
+  '#graphql\n  query layout {\n    shop {\n      name\n      description\n    }\n  }\n': {
+    return: LayoutQuery;
+    variables: LayoutQueryVariables;
+  };
+}
+
+interface GeneratedMutationTypes {}
+
+declare module 'my-api-client' {
+  interface MyAPIQueries extends GeneratedQueryTypes {}
+  interface MyAPIMutations extends GeneratedMutationTypes {}
+}
+```
+
+Therefore, when passing the query to the GraphQL client, TypeScript will infer the type of the response and the variables parameter.
+
 ### Making GraphQL clients
 
 To make a GraphQL client that complies with the generated types, you can use the following utility types:
@@ -201,9 +200,16 @@ ClientVariablesInRestParams<
 >;
 ```
 
+To see a full example of a GraphQL client using these types, check the [Hydrogen's Storefront client](https://github.com/Shopify/hydrogen/blob/8030ac3956e48bceb43953b16fa30e7f94f5a942/packages/hydrogen/src/storefront.ts#L112-L126).
+
 ### Wrapping this preset
 
-This preset can be wrapped in a custom preset that generates types for a specific API and adds default values. For example, to generate types for an `example-api` package:
+This preset can be wrapped in a package that generates types for a specific API and adds default values to the preset. For example, an all-in-one solution for an "Example API" would be a package that provides:
+
+- The schema file for the Example API (in JSON or any format that GraphQL Codegen supports).
+- Optionally, pre-generated TypeScript types for the given schema. It's also possible to let this preset generate the types inline by omitting the `importTypes` option, or use the standalone [`@graphql-codegen/typescript` plugin](https://the-guild.dev/graphql/codegen/plugins/typescript/typescript) to generate the types in a separate file.
+- An implementation of a GraphQL client that complies with the generated types.
+- A custom preset that wraps `@shopify/graphql-codegen`'s preset and provides default values like in the following example.
 
 ```ts
 // example-api/preset.ts
@@ -211,7 +217,7 @@ This preset can be wrapped in a custom preset that generates types for a specifi
 import {preset as internalPreset} from '@shopify/graphql-codegen';
 export {pluckConfig} from '@shopify/graphql-codegen';
 
-// Export a custom preset that adds default values for schema and types:
+// Export a custom preset that adds default values to @shopify/graphql-codegen:
 export const preset = {
   buildGeneratesSection: (options) => {
     return internalPreset.buildGeneratesSection({
