@@ -8,6 +8,7 @@ on:
 
 jobs:
   cla:
+    name: ⬣ CLA
     runs-on: ubuntu-latest
     if: |
       (github.event.issue.pull_request
