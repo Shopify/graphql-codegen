@@ -40,16 +40,15 @@ export type ClientReturn<
   GeneratedOperations extends CodegenOperations,
   RawGqlString extends string,
   OverrideReturnType extends any = never,
-> =
-  IsNever<OverrideReturnType> extends true
-    ? // Nothing passed to override the return type
-      RawGqlString extends keyof GeneratedOperations
-      ? // Known query, use generated return type
-        GeneratedOperations[RawGqlString]['return']
-      : // Unknown query, return 'any' to avoid red squiggly underlines in editor
-        any
-    : // Override return type is passed, use it
-      OverrideReturnType;
+> = IsNever<OverrideReturnType> extends true
+  ? // Nothing passed to override the return type
+    RawGqlString extends keyof GeneratedOperations
+    ? // Known query, use generated return type
+      GeneratedOperations[RawGqlString]['return']
+    : // Unknown query, return 'any' to avoid red squiggly underlines in editor
+      any
+  : // Override return type is passed, use it
+    OverrideReturnType;
 
 /**
  * Checks if the generated variables for an operation
@@ -64,13 +63,13 @@ export type IsOptionalVariables<
   ? // No expected required variables, object is optional
     true
   : GenericVariables extends VariablesParam
-    ? // We don't have information about the variables, so we assume object is optional
-      true
-    : Partial<VariablesWithoutOptionals> extends VariablesWithoutOptionals
-      ? // All known variables are optional, object is optional
-        true
-      : // Some known variables are required, object is required
-        false;
+  ? // We don't have information about the variables, so we assume object is optional
+    true
+  : Partial<VariablesWithoutOptionals> extends VariablesWithoutOptionals
+  ? // All known variables are optional, object is optional
+    true
+  : // Some known variables are required, object is required
+    false;
 
 /**
  * Used as the type for the GraphQL client's variables. It checks
@@ -95,12 +94,11 @@ export type ClientVariables<
       >
     : GenericVariables,
   VariablesWrapper = Record<VariablesKey, GeneratedVariables>,
-> =
-  IsOptionalVariables<GeneratedVariables, OptionalVariableNames> extends true
-    ? // Variables are all optional: object wrapper is optional
-      Partial<VariablesWrapper>
-    : // Some variables are required: object wrapper is required
-      VariablesWrapper;
+> = IsOptionalVariables<GeneratedVariables, OptionalVariableNames> extends true
+  ? // Variables are all optional: object wrapper is optional
+    Partial<VariablesWrapper>
+  : // Some variables are required: object wrapper is required
+    VariablesWrapper;
 
 /**
  * Similar to ClientVariables, but makes the whole wrapper optional:
@@ -116,16 +114,15 @@ export type ClientVariablesInRestParams<
   // The following are just extracted repeated types, not parameters:
   ProcessedVariables = OtherParams &
     ClientVariables<GeneratedOperations, RawGqlString, OptionalVariableNames>,
-> =
-  Partial<OtherParams> extends OtherParams
-    ? // No required keys in OtherParams: keep checking
-      IsOptionalVariables<
-        GeneratedOperations[RawGqlString]['variables'],
-        OptionalVariableNames
-      > extends true
-      ? // No required keys in OtherParams and variables are also optional: rest param is optional
-        [ProcessedVariables?]
-      : // No required keys in OtherParams but variables are required: rest param is required
-        [ProcessedVariables]
-    : // There are required keys in OtherParams: rest param is required
-      [ProcessedVariables];
+> = Partial<OtherParams> extends OtherParams
+  ? // No required keys in OtherParams: keep checking
+    IsOptionalVariables<
+      GeneratedOperations[RawGqlString]['variables'],
+      OptionalVariableNames
+    > extends true
+    ? // No required keys in OtherParams and variables are also optional: rest param is optional
+      [ProcessedVariables?]
+    : // No required keys in OtherParams but variables are required: rest param is required
+      [ProcessedVariables]
+  : // There are required keys in OtherParams: rest param is required
+    [ProcessedVariables];
