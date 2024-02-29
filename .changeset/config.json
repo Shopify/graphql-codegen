@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@2.2.0/schema.json",
-  "changelog": ["./changelog-config.js", {"repo": "shopify/graphql-codegen"}],
+  "changelog": ["./changelog-config.cjs", {"repo": "shopify/graphql-codegen"}],
   "commit": false,
   "fixed": [],
   "linked": [],
