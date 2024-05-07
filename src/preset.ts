@@ -90,7 +90,7 @@ export const preset: Types.OutputPreset<PresetConfig> = {
       importTypes
         ? {
             [`add`]: {
-              content: `import * as ${namespacedImportName} from '${importTypesFrom}';\n`,
+              content: `import type * as ${namespacedImportName} from '${importTypesFrom}';\n`,
             },
           }
         : {

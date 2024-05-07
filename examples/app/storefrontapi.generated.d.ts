@@ -1,7 +1,7 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable eslint-comments/no-unlimited-disable */
 /* eslint-disable */
-import * as StorefrontAPI from '../../tests/fixtures/storefront-api-types.d.ts';
+import type * as StorefrontAPI from '../../tests/fixtures/storefront-api-types.d.ts';
 
 export type LayoutQueryVariables = StorefrontAPI.Exact<{[key: string]: never}>;
 
