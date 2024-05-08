@@ -1,5 +1,11 @@
 # @shopify/graphql-codegen
 
+## 0.0.2
+
+### Patch Changes
+
+- Use type imports in the generated d.ts file ([#7](https://github.com/Shopify/graphql-codegen/pull/7)) by [@frandiox](https://github.com/frandiox)
+
 ## 0.0.1
 
 ### Patch Changes
