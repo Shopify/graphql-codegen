@@ -65,7 +65,7 @@ describe('Shopify GraphQL Codegen', async () => {
 
     // Imports SFAPI
     expect(generatedCode).toMatch(
-      `import * as StorefrontAPI from './fixtures/storefront-api-types';`,
+      `import type * as StorefrontAPI from './fixtures/storefront-api-types';`,
     );
 
     // Uses Pick<...>
@@ -86,7 +86,7 @@ describe('Shopify GraphQL Codegen', async () => {
       "/* eslint-disable eslint-comments/disable-enable-pair */
       /* eslint-disable eslint-comments/no-unlimited-disable */
       /* eslint-disable */
-      import * as StorefrontAPI from './fixtures/storefront-api-types';
+      import type * as StorefrontAPI from './fixtures/storefront-api-types';
 
       export type LayoutQueryVariables = StorefrontAPI.Exact<{ [key: string]: never; }>;
 
@@ -131,7 +131,7 @@ describe('Shopify GraphQL Codegen', async () => {
       "/* eslint-disable eslint-comments/disable-enable-pair */
       /* eslint-disable eslint-comments/no-unlimited-disable */
       /* eslint-disable */
-      import * as StorefrontAPI from './fixtures/storefront-api-types';
+      import type * as StorefrontAPI from './fixtures/storefront-api-types';
 
       type Media_ExternalVideo_Fragment = (
         { __typename: 'ExternalVideo' }

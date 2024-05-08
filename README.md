@@ -82,7 +82,7 @@ export default {
       schema: './path/to/my-api-schema.json',
       documents: ['./src/graphql/my-api/*.{ts,tsx,js,jsx}'],
       presetConfig: {
-        // Generate the line `import * as MyAPI from 'path/to/my-api-types';`.
+        // Generate the line `import type * as MyAPI from 'path/to/my-api-types';`.
         // If you don't have generated types for your API beforehand,
         // omit this parameter to generate the types inline.
         importTypes: {
@@ -111,7 +111,7 @@ Then, include queries in your app that match the given schema and documents path
 
 ```ts
 // my-api.generated.d.ts
-import * as MyAPI from 'path/to/my-api-types';
+import type * as MyAPI from 'path/to/my-api-types';
 
 export type LayoutQueryVariables = MyAPI.Exact<{[key: string]: never}>;
 
