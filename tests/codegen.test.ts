@@ -35,11 +35,11 @@ describe('Shopify GraphQL Codegen', async () => {
     },
   });
 
-  it('requires .d.ts extension', async () => {
+  it('requires .ts or .d.ts extension', async () => {
     await expect(
       executeCodegen(getCodegenOptions('simple-operations.ts', 'out')),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[AggregateError: [@shopify/graphql-codegen] target output should be a .d.ts file]`,
+      `[AggregateError: [@shopify/graphql-codegen] target output should be a .ts or a .d.ts file.]`,
     );
   });
 

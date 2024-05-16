@@ -45,8 +45,10 @@ const ERROR_PREFIX = '[@shopify/graphql-codegen]';
 export const preset: Types.OutputPreset<PresetConfig> = {
   [Symbol.for('name')]: '@shopify/graphql-codegen',
   buildGeneratesSection: (options) => {
-    if (!options.baseOutputDir.endsWith('.d.ts')) {
-      throw new Error(ERROR_PREFIX + ' target output should be a .d.ts file');
+    if (!options.baseOutputDir.endsWith('.ts')) {
+      throw new Error(
+        ERROR_PREFIX + ' target output should be a .ts or a .d.ts file.',
+      );
     }
 
     if (
@@ -97,7 +99,7 @@ export const preset: Types.OutputPreset<PresetConfig> = {
             [`typescript`]: {
               useTypeImports: true,
               useImplementingTypes: true,
-              enumsAsTypes: true,
+              enumsAsTypes: options.baseOutputDir.endsWith('.d.ts'),
             },
           },
       // 3. Generate the operations (i.e. queries, mutations, and fragments types)
