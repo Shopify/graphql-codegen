@@ -49,6 +49,23 @@ describe('Shopify GraphQL Codegen', async () => {
     ).rejects.toThrowError(/Not all operations have an unique name: layout/i);
   });
 
+  it('uses plain imports for .ts files', async () => {
+    const result = await executeCodegen(
+      getCodegenOptions('simple-operations.ts', 'out.ts'),
+    );
+
+    expect(result).toHaveLength(1);
+
+    const generatedCode = result.find(
+      (file) => file.filename === 'out.ts',
+    )!.content;
+
+    // Imports SFAPI
+    expect(generatedCode).toMatch(
+      `import * as StorefrontAPI from './fixtures/storefront-api-types';`,
+    );
+  });
+
   it('includes ESLint comments, types with Pick, generated operations and augments interfaces', async () => {
     const result = await executeCodegen(
       getCodegenOptions('simple-operations.ts'),
