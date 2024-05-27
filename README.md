@@ -107,6 +107,9 @@ export default {
 } as CodegenConfig;
 ```
 
+> [!TIP]
+> To use enums instead of types, change the generated file extension to `.ts` instead of `.d.ts`.
+
 Then, include queries in your app that match the given schema and documents paths. For example, for a query `layout` like the one in the example above, the generated `d.ts` file will look like this:
 
 ```ts

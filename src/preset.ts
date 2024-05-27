@@ -45,8 +45,10 @@ const ERROR_PREFIX = '[@shopify/graphql-codegen]';
 export const preset: Types.OutputPreset<PresetConfig> = {
   [Symbol.for('name')]: '@shopify/graphql-codegen',
   buildGeneratesSection: (options) => {
-    if (!options.baseOutputDir.endsWith('.d.ts')) {
-      throw new Error(ERROR_PREFIX + ' target output should be a .d.ts file');
+    if (!options.baseOutputDir.endsWith('.ts')) {
+      throw new Error(
+        ERROR_PREFIX + ' target output should be a .ts or a .d.ts file.',
+      );
     }
 
     if (
@@ -59,6 +61,7 @@ export const preset: Types.OutputPreset<PresetConfig> = {
       );
     }
 
+    const isDts = options.baseOutputDir.endsWith('.d.ts');
     const sourcesWithOperations = processSources(options.documents);
     const sources = sourcesWithOperations.map(({source}) => source);
 
@@ -90,20 +93,22 @@ export const preset: Types.OutputPreset<PresetConfig> = {
       importTypes
         ? {
             [`add`]: {
-              content: `import type * as ${namespacedImportName} from '${importTypesFrom}';\n`,
+              content: `import${
+                isDts ? ' type ' : ' '
+              }* as ${namespacedImportName} from '${importTypesFrom}';\n`,
             },
           }
         : {
             [`typescript`]: {
-              useTypeImports: true,
+              enumsAsTypes: isDts,
+              useTypeImports: isDts,
               useImplementingTypes: true,
-              enumsAsTypes: true,
             },
           },
       // 3. Generate the operations (i.e. queries, mutations, and fragments types)
       {
         [`typescript-operations`]: {
-          useTypeImports: true, // Use `import type` instead of `import`
+          useTypeImports: isDts, // Use `import type` instead of `import`
           preResolveTypes: false, // Use Pick<...> instead of primitives
           mergeFragmentTypes: true, // Merge equal fragment interfaces. Avoids adding `| {}` to Metaobject
           skipTypename: options.presetConfig.skipTypenameInOperations ?? true, // Skip __typename fields
