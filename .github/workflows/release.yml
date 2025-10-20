@@ -27,9 +27,13 @@ jobs:
       - name: ⎔ Setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version-file: '.nvmrc'
+          node-version: '22.x'
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install npm 11.x for OIDC support
+        run: npm install -g npm@^11.5.1
 
       - name: Install the packages
         run: npm ci
@@ -49,5 +53,4 @@ jobs:
           title: '[ci] release'
         env:
           GITHUB_TOKEN: ${{ secrets.SHOPIFY_GH_ACCESS_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
