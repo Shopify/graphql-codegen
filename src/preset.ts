@@ -62,7 +62,10 @@ export const preset: Types.OutputPreset<PresetConfig> = {
     }
 
     const isDts = options.baseOutputDir.endsWith('.d.ts');
-    const sourcesWithOperations = processSources(options.documents);
+    const sourcesWithOperations = processSources(
+      options.documents,
+      options.config ?? {},
+    );
     const sources = sourcesWithOperations.map(({source}) => source);
 
     const namespacedImportName = options.presetConfig.importTypes?.namespace;

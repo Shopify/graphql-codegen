@@ -7,6 +7,7 @@ import type {FragmentDefinitionNode, OperationDefinitionNode} from 'graphql';
 
 export type OperationOrFragment = {
   initialName: string;
+  variablesName: string;
   definition: OperationDefinitionNode | FragmentDefinitionNode;
 };
 
@@ -61,14 +62,19 @@ const normalizeOperation = (
   return rawSDL;
 };
 
-const buildTypeLines = (name: string, operations: Map<string, string[]>) => {
+const buildTypeLines = (
+  name: string,
+  operations: Map<string, Array<OperationTypeNames>>,
+) => {
   const lines = [`interface ${name} {\n`];
 
   for (const [originalString, typeNames] of operations) {
     lines.push(
       `  ${JSON.stringify(originalString)}: {return: ${
-        typeNames.length === 1 ? typeNames[0] : 'never'
-      }, variables: ${typeNames.map((n) => n + 'Variables').join(' & ')}},\n`,
+        typeNames.length === 1 ? typeNames[0].initialName : 'never'
+      }, variables: ${typeNames
+        .map(({variablesName}) => variablesName)
+        .join(' & ')}},\n`,
     );
   }
 
@@ -77,11 +83,16 @@ const buildTypeLines = (name: string, operations: Map<string, string[]>) => {
   return lines;
 };
 
+type OperationTypeNames = {
+  initialName: string;
+  variablesName: string;
+};
+
 function getDocumentRegistryChunk(
   sourcesWithOperations: Array<SourceWithOperations> = [],
 ) {
-  const queries = new Map<string, string[]>();
-  const mutations = new Map<string, string[]>();
+  const queries = new Map<string, Array<OperationTypeNames>>();
+  const mutations = new Map<string, Array<OperationTypeNames>>();
 
   const variablesMap = new Map<string, string>();
   for (const {source} of sourcesWithOperations) {
@@ -103,7 +114,10 @@ function getDocumentRegistryChunk(
     const target = isMutationRE.test(sdlString) ? mutations : queries;
     target.set(
       normalizeOperation(sdlString, variablesMap),
-      actualOperations.map((o) => o.initialName),
+      actualOperations.map(({initialName, variablesName}) => ({
+        initialName,
+        variablesName,
+      })),
     );
   }
 

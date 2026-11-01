@@ -49,6 +49,42 @@ describe('Shopify GraphQL Codegen', async () => {
     ).rejects.toThrowError(/Not all operations have an unique name: layout/i);
   });
 
+  it('matches Codegen operation type names', async () => {
+    const result = await executeCodegen(
+      getCodegenOptions('acronym-operation.ts'),
+    );
+    const generatedCode = result[0].content;
+
+    expect(generatedCode).toContain('export type SupplementQrCodeQuery =');
+    expect(generatedCode).toContain(
+      'return: SupplementQrCodeQuery, variables: SupplementQrCodeQueryVariables',
+    );
+    expect(generatedCode).toContain('export type Product_SearchQuery =');
+    expect(generatedCode).toContain(
+      'return: Product_SearchQuery, variables: Product_SearchQueryVariables',
+    );
+  });
+
+  it('uses configured naming conventions in the operation registry', async () => {
+    const result = await executeCodegen({
+      ...getCodegenOptions('acronym-operation.ts'),
+      config: {
+        namingConvention: 'keep',
+        typesPrefix: 'I',
+        typesSuffix: 'Types',
+        operationResultSuffix: 'Result',
+      },
+    });
+    const generatedCode = result[0].content;
+
+    expect(generatedCode).toContain(
+      'export type IsupplementQRCodeQueryResultTypes =',
+    );
+    expect(generatedCode).toContain(
+      'return: IsupplementQRCodeQueryResultTypes, variables: IsupplementQRCodeQueryVariablesTypes',
+    );
+  });
+
   it('uses plain imports for .ts files', async () => {
     const result = await executeCodegen(
       getCodegenOptions('simple-operations.ts', 'out.ts'),

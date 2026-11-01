@@ -66,6 +66,8 @@
     "@graphql-codegen/add": "^5.0.1",
     "@graphql-codegen/typescript": "^4.0.2",
     "@graphql-codegen/typescript-operations": "^4.1.0",
+    "@graphql-codegen/visitor-plugin-common": "^5.1.0",
+    "change-case-all": "^1.0.15",
     "type-fest": "^4.5.0"
   },
   "peerDependencies": {
