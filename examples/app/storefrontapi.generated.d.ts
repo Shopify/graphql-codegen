@@ -1,12 +1,21 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable eslint-comments/no-unlimited-disable */
 /* eslint-disable */
-import type * as StorefrontAPI from '../../tests/fixtures/storefront-api-types.d.ts';
-
-export type LayoutQueryVariables = StorefrontAPI.Exact<{[key: string]: never}>;
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends {[key: string]: unknown}> = {[K in keyof T]: T[K]};
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | {[P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never};
+export type LayoutQueryVariables = Exact<{[key: string]: never}>;
 
 export type LayoutQuery = {
-  shop: Pick<StorefrontAPI.Shop, 'name' | 'description'>;
+  shop: {
+    name: import('./../../tests/fixtures/storefront-api-types.d.ts').Scalars['String']['output'];
+    description:
+      | import('./../../tests/fixtures/storefront-api-types.d.ts').Scalars['String']['output']
+      | null;
+  };
 };
 
 interface GeneratedQueryTypes {
