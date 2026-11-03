@@ -1,4 +1,6 @@
 import type {Types} from '@graphql-codegen/plugin-helpers';
+import {buildASTSchema, isScalarType} from 'graphql';
+import {dirname, relative, resolve} from 'node:path';
 import * as addPlugin from '@graphql-codegen/add';
 import * as typescriptPlugin from '@graphql-codegen/typescript';
 import * as typescriptOperationPlugin from '@graphql-codegen/typescript-operations';
@@ -68,6 +70,30 @@ export const preset: Types.OutputPreset<PresetConfig> = {
     const namespacedImportName = options.presetConfig.importTypes?.namespace;
     const importTypesFrom = options.presetConfig.importTypes?.from;
     const importTypes = !!namespacedImportName && !!importTypesFrom;
+    // Match the operation plugin's cwd-relative schema import resolution.
+    const scalarImportPath = importTypesFrom?.startsWith('~')
+      ? importTypesFrom.slice(1)
+      : `./${relative(
+          dirname(resolve(options.baseOutputDir)),
+          resolve(importTypesFrom ?? ''),
+        ).replace(/\\/g, '/')}`;
+    const importedScalars = importTypes
+      ? Object.fromEntries(
+          Object.values(
+            (options.schemaAst ?? buildASTSchema(options.schema)).getTypeMap(),
+          )
+            .filter(isScalarType)
+            .map(({name}) => {
+              const scalar = `import(${JSON.stringify(
+                scalarImportPath,
+              )}).Scalars[${JSON.stringify(name)}]`;
+              return [
+                name,
+                {input: `${scalar}['input']`, output: `${scalar}['output']`},
+              ];
+            }),
+        )
+      : undefined;
 
     const interfaceExtensionCode = options.presetConfig.interfaceExtension({
       queryType: GENERATED_QUERY_INTERFACE_NAME,
@@ -128,6 +154,9 @@ export const preset: Types.OutputPreset<PresetConfig> = {
           defaultScalarType: 'unknown',
           // Allow overwriting defaults:
           ...options.config,
+          ...(importedScalars && typeof options.config.scalars !== 'string'
+            ? {scalars: {...importedScalars, ...options.config.scalars}}
+            : {}),
         },
         documents: sources,
         documentTransforms: options.documentTransforms,

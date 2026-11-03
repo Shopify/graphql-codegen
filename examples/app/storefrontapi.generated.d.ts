@@ -9,7 +9,14 @@ export type Incremental<T> =
   | {[P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never};
 export type LayoutQueryVariables = Exact<{[key: string]: never}>;
 
-export type LayoutQuery = {shop: {name: string; description: string | null}};
+export type LayoutQuery = {
+  shop: {
+    name: import('./../../tests/fixtures/storefront-api-types.d.ts').Scalars['String']['output'];
+    description:
+      | import('./../../tests/fixtures/storefront-api-types.d.ts').Scalars['String']['output']
+      | null;
+  };
+};
 
 interface GeneratedQueryTypes {
   '#graphql\n  query layout {\n    shop {\n      name\n      description\n    }\n  }\n': {

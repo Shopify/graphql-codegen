@@ -82,7 +82,7 @@ export default {
       schema: './path/to/my-api-schema.json',
       documents: ['./src/graphql/my-api/*.{ts,tsx,js,jsx}'],
       presetConfig: {
-        // Reuse generated API types for enums and input objects.
+        // Reuse generated API types for scalars, enums and input objects.
         // Operation result fields are generated from the selected fields.
         importTypes: {
           namespace: 'MyAPI',
@@ -109,7 +109,7 @@ export default {
 > [!TIP]
 > To use enums instead of types, change the generated file extension to `.ts` instead of `.d.ts`.
 
-Then, include queries in your app that match the given schema and documents paths. For example, for a query `layout` like the one in the example above, the generated `d.ts` file will look like this. Shared enum and input types are imported when an operation uses them; this query only selects object fields, so it needs no schema import.
+Then, include queries in your app that match the given schema and documents paths. For example, for a query `layout` like the one in the example above, the generated `d.ts` file will look like this. Scalar fields retain the input and output types defined by the imported schema types.
 
 ```ts
 // my-api.generated.d.ts
@@ -122,7 +122,14 @@ export type Incremental<T> =
 
 export type LayoutQueryVariables = Exact<{[key: string]: never}>;
 
-export type LayoutQuery = {shop: {name: string; description: string | null}};
+export type LayoutQuery = {
+  shop: {
+    name: import('./path/to/my-api-types').Scalars['String']['output'];
+    description:
+      | import('./path/to/my-api-types').Scalars['String']['output']
+      | null;
+  };
+};
 
 interface GeneratedQueryTypes {
   '#graphql\n  query layout {\n    shop {\n      name\n      description\n    }\n  }\n': {

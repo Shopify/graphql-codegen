@@ -1,4 +1,13 @@
 import path from 'node:path';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  writeFileSync,
+  rmSync,
+} from 'node:fs';
+import {tmpdir} from 'node:os';
+import ts from 'typescript';
 import {describe, it, expect} from 'vitest';
 import {executeCodegen} from '@graphql-codegen/cli';
 import {preset, pluckConfig} from '../src/index.js';
@@ -42,6 +51,130 @@ describe('Shopify GraphQL Codegen', async () => {
 
     return result;
   };
+
+  it.each([
+    {scalars: undefined, input: 'number', output: 'string'},
+    {scalars: undefined, input: 'number', output: 'string', nested: true},
+    {
+      scalars: undefined,
+      input: 'number',
+      output: 'string',
+      packageImport: true,
+    },
+    {scalars: 'module', input: 'number', output: 'string'},
+    {scalars: undefined, input: 'unknown', output: 'unknown', inline: true},
+    {scalars: {URL: 'boolean'}, input: 'boolean', output: 'boolean'},
+    {
+      scalars: {URL: {input: 'string', output: 'Date'}},
+      input: 'string',
+      output: 'Date',
+    },
+  ])(
+    'preserves scalar input/output types and overrides: $input/$output',
+    async ({
+      scalars,
+      input,
+      output: outputType,
+      inline,
+      nested,
+      packageImport,
+    }) => {
+      const directory = mkdtempSync(
+        path.join(tmpdir(), 'shopify-codegen-scalars-'),
+      );
+      try {
+        const documents = path.join(directory, 'query.graphql');
+        const outputDirectory = nested
+          ? path.join(directory, 'generated', 'operations')
+          : directory;
+        mkdirSync(outputDirectory, {recursive: true});
+        const output = path.join(outputDirectory, 'generated.d.ts');
+        const consumer = path.join(outputDirectory, 'consumer.ts');
+        writeFileSync(
+          documents,
+          'query ScalarProbe($url: URL!, $mode: Mode!) { echo(url: $url, mode: $mode) id mode }',
+        );
+        const schema = path.join(directory, 'schema.graphql');
+        writeFileSync(
+          schema,
+          'scalar URL\nenum Mode { FIRST SECOND }\ntype Query { echo(url: URL!, mode: Mode!): URL! id: ID! mode: Mode! }',
+        );
+        writeFileSync(
+          path.join(directory, 'schema-types.ts'),
+          `export type Scalars = {URL: {input: number; output: string}; ID: {input: string; output: string}}; export type Mode = 'FIRST' | 'SECOND'; export type URL = Scalars['URL']; export type ID = Scalars['ID']; export type String = {input: string; output: string}; export type Boolean = {input: boolean; output: boolean};`,
+        );
+        const options = getCodegenOptions('simple-operations.ts', output);
+        const generation = options.generates[output];
+        generation.documents = [documents];
+        generation.schema = schema;
+        Object.assign(generation, {
+          config: {
+            scalars:
+              scalars === 'module'
+                ? path.join(directory, 'schema-types')
+                : scalars,
+          },
+        });
+        generation.presetConfig.importTypes.from = path.relative(
+          process.cwd(),
+          path.join(directory, 'schema-types'),
+        );
+        generation.presetConfig.interfaceExtension = () => '';
+        if (packageImport) {
+          const packageDirectory = path.join(
+            directory,
+            'node_modules',
+            'scalar-fixture',
+          );
+          mkdirSync(packageDirectory, {recursive: true});
+          copyFileSync(
+            path.join(directory, 'schema-types.ts'),
+            path.join(packageDirectory, 'schema-types.d.ts'),
+          );
+          writeFileSync(
+            path.join(packageDirectory, 'package.json'),
+            JSON.stringify({
+              name: 'scalar-fixture',
+              exports: {'./schema-types': './schema-types.d.ts'},
+            }),
+          );
+          generation.presetConfig.importTypes.from =
+            '~scalar-fixture/schema-types';
+        }
+        if (inline) delete (generation.presetConfig as any).importTypes;
+        const [generated] = await runCodegen(options);
+        writeFileSync(output, generated.content);
+        writeFileSync(
+          consumer,
+          `import type {ScalarProbeQuery, ScalarProbeQueryVariables} from './generated';
+         declare const result: ScalarProbeQuery;
+         const url: ${outputType} = result.echo;
+         const id: string = result.id;
+         const mode: 'FIRST' | 'SECOND' = result.mode;
+         declare const input: ${input};
+         const variables: ScalarProbeQueryVariables = {url: input, mode: 'FIRST'};`,
+        );
+        const program = ts.createProgram([consumer], {
+          noEmit: true,
+          strict: true,
+          skipLibCheck: true,
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.ESNext,
+          moduleResolution: ts.ModuleResolutionKind.Bundler,
+          types: [],
+        });
+        expect(
+          ts
+            .getPreEmitDiagnostics(program)
+            .map((diagnostic) =>
+              ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+            ),
+        ).toEqual([]);
+      } finally {
+        rmSync(directory, {recursive: true, force: true});
+      }
+    },
+  );
 
   it('requires .ts or .d.ts extension', async () => {
     await expect(
@@ -129,14 +262,14 @@ describe('Shopify GraphQL Codegen', async () => {
       export type LayoutQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-      export type LayoutQuery = { shop: { name: string, description: string | null } };
+      export type LayoutQuery = { shop: { name: import("./fixtures/storefront-api-types").Scalars["String"]['output'], description: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null } };
 
       export type CartCreateMutationVariables = Exact<{
         input: StorefrontAPI.CartInput;
       }>;
 
 
-      export type CartCreateMutation = { cartCreate: { cart: { id: string } | null } | null };
+      export type CartCreateMutation = { cartCreate: { cart: { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'] } | null } | null };
 
       interface GeneratedQueryTypes {
         "#graphql\\n  query layout {\\n    shop {\\n      name\\n      description\\n    }\\n  }\\n": {return: LayoutQuery, variables: LayoutQueryVariables},
@@ -174,17 +307,17 @@ describe('Shopify GraphQL Codegen', async () => {
       import type * as StorefrontAPI from './fixtures/storefront-api-types';
 
       type Media_ExternalVideo_Fragment = (
-        { id: string, embedUrl: unknown, host: StorefrontAPI.MediaHost, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, previewImage: { url: unknown } | null }
+        { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], embedUrl: import("./fixtures/storefront-api-types").Scalars["URL"]['output'], host: StorefrontAPI.MediaHost, mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
         & { __typename: 'ExternalVideo' }
       );
 
       type Media_MediaImage_Fragment = (
-        { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, image: { url: unknown, width: number | null, height: number | null } | null, previewImage: { url: unknown } | null }
+        { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, image: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'], width: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null, height: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null } | null, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
         & { __typename: 'MediaImage' }
       );
 
       type Media_Model3d_Video_Fragment = (
-        { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, sources: Array<{ mimeType: string, url: string }>, previewImage: { url: unknown } | null }
+        { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, sources: Array<{ mimeType: import("./fixtures/storefront-api-types").Scalars["String"]['output'], url: import("./fixtures/storefront-api-types").Scalars["String"]['output'] }>, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
         & { __typename: 'Model3d' | 'Video' }
       );
 
@@ -194,52 +327,52 @@ describe('Shopify GraphQL Codegen', async () => {
         | Media_Model3d_Video_Fragment
       ;
 
-      export type CollectionContentFragment = { id: string, handle: string, title: string, descriptionHtml: unknown, heading: { value: string } | null, byline: { value: string } | null, cta: { value: string } | null, spread: { reference:
+      export type CollectionContentFragment = { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], handle: import("./fixtures/storefront-api-types").Scalars["String"]['output'], title: import("./fixtures/storefront-api-types").Scalars["String"]['output'], descriptionHtml: import("./fixtures/storefront-api-types").Scalars["HTML"]['output'], heading: { value: import("./fixtures/storefront-api-types").Scalars["String"]['output'] } | null, byline: { value: import("./fixtures/storefront-api-types").Scalars["String"]['output'] } | null, cta: { value: import("./fixtures/storefront-api-types").Scalars["String"]['output'] } | null, spread: { reference:
             | (
-              { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, image: { url: unknown, width: number | null, height: number | null } | null, previewImage: { url: unknown } | null }
+              { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, image: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'], width: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null, height: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null } | null, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
               & { __typename: 'MediaImage' }
             )
             | (
-              { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, sources: Array<{ mimeType: string, url: string }>, previewImage: { url: unknown } | null }
+              { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, sources: Array<{ mimeType: import("./fixtures/storefront-api-types").Scalars["String"]['output'], url: import("./fixtures/storefront-api-types").Scalars["String"]['output'] }>, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
               & { __typename: 'Video' }
             )
            | null } | null, spreadSecondary: { reference:
             | (
-              { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, image: { url: unknown, width: number | null, height: number | null } | null, previewImage: { url: unknown } | null }
+              { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, image: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'], width: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null, height: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null } | null, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
               & { __typename: 'MediaImage' }
             )
             | (
-              { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, sources: Array<{ mimeType: string, url: string }>, previewImage: { url: unknown } | null }
+              { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, sources: Array<{ mimeType: import("./fixtures/storefront-api-types").Scalars["String"]['output'], url: import("./fixtures/storefront-api-types").Scalars["String"]['output'] }>, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
               & { __typename: 'Video' }
             )
            | null } | null };
 
       export type CollectionContentTestQueryVariables = Exact<{
-        handle?: string | null | undefined;
+        handle?: import("./fixtures/storefront-api-types").Scalars["String"]['input'] | null | undefined;
         country?: StorefrontAPI.CountryCode | null | undefined;
         language?: StorefrontAPI.LanguageCode | null | undefined;
       }>;
 
 
-      export type CollectionContentTestQuery = { hero: { id: string, handle: string, title: string, descriptionHtml: unknown, heading: { value: string } | null, byline: { value: string } | null, cta: { value: string } | null, spread: { reference:
+      export type CollectionContentTestQuery = { hero: { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], handle: import("./fixtures/storefront-api-types").Scalars["String"]['output'], title: import("./fixtures/storefront-api-types").Scalars["String"]['output'], descriptionHtml: import("./fixtures/storefront-api-types").Scalars["HTML"]['output'], heading: { value: import("./fixtures/storefront-api-types").Scalars["String"]['output'] } | null, byline: { value: import("./fixtures/storefront-api-types").Scalars["String"]['output'] } | null, cta: { value: import("./fixtures/storefront-api-types").Scalars["String"]['output'] } | null, spread: { reference:
               | (
-                { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, image: { url: unknown, width: number | null, height: number | null } | null, previewImage: { url: unknown } | null }
+                { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, image: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'], width: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null, height: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null } | null, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
                 & { __typename: 'MediaImage' }
               )
               | (
-                { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, sources: Array<{ mimeType: string, url: string }>, previewImage: { url: unknown } | null }
+                { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, sources: Array<{ mimeType: import("./fixtures/storefront-api-types").Scalars["String"]['output'], url: import("./fixtures/storefront-api-types").Scalars["String"]['output'] }>, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
                 & { __typename: 'Video' }
               )
              | null } | null, spreadSecondary: { reference:
               | (
-                { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, image: { url: unknown, width: number | null, height: number | null } | null, previewImage: { url: unknown } | null }
+                { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, image: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'], width: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null, height: import("./fixtures/storefront-api-types").Scalars["Int"]['output'] | null } | null, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
                 & { __typename: 'MediaImage' }
               )
               | (
-                { id: string, mediaContentType: StorefrontAPI.MediaContentType, alt: string | null, sources: Array<{ mimeType: string, url: string }>, previewImage: { url: unknown } | null }
+                { id: import("./fixtures/storefront-api-types").Scalars["ID"]['output'], mediaContentType: StorefrontAPI.MediaContentType, alt: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null, sources: Array<{ mimeType: import("./fixtures/storefront-api-types").Scalars["String"]['output'], url: import("./fixtures/storefront-api-types").Scalars["String"]['output'] }>, previewImage: { url: import("./fixtures/storefront-api-types").Scalars["URL"]['output'] } | null }
                 & { __typename: 'Video' }
               )
-             | null } | null } | null, shop: { name: string, description: string | null } };
+             | null } | null } | null, shop: { name: import("./fixtures/storefront-api-types").Scalars["String"]['output'], description: import("./fixtures/storefront-api-types").Scalars["String"]['output'] | null } };
 
       interface GeneratedQueryTypes {
         "#graphql\\n  query collectionContentTest($handle: String, $country: CountryCode, $language: LanguageCode)\\n  @inContext(country: $country, language: $language) {\\n    hero: collection(handle: $handle) {\\n      ...CollectionContent\\n    }\\n    shop {\\n      name\\n      description\\n    }\\n  }\\n  #graphql\\n  fragment CollectionContent on Collection {\\n    id\\n    handle\\n    title\\n    descriptionHtml\\n    heading: metafield(namespace: \\"hero\\", key: \\"title\\") {\\n      value\\n    }\\n    byline: metafield(namespace: \\"hero\\", key: \\"byline\\") {\\n      value\\n    }\\n    cta: metafield(namespace: \\"hero\\", key: \\"cta\\") {\\n      value\\n    }\\n    spread: metafield(namespace: \\"hero\\", key: \\"spread\\") {\\n      reference {\\n        ...Media\\n      }\\n    }\\n    spreadSecondary: metafield(namespace: \\"hero\\", key: \\"spread_secondary\\") {\\n      reference {\\n        ...Media\\n      }\\n    }\\n  }\\n  #graphql\\n  fragment Media on Media {\\n    __typename\\n    mediaContentType\\n    alt\\n    previewImage {\\n      url\\n    }\\n    ... on MediaImage {\\n      id\\n      image {\\n        url\\n        width\\n        height\\n      }\\n    }\\n    ... on Video {\\n      id\\n      sources {\\n        mimeType\\n        url\\n      }\\n    }\\n    ... on Model3d {\\n      id\\n      sources {\\n        mimeType\\n        url\\n      }\\n    }\\n    ... on ExternalVideo {\\n      id\\n      embedUrl\\n      host\\n    }\\n  }\\n\\n\\n": {return: CollectionContentTestQuery, variables: CollectionContentTestQueryVariables},
